@@ -39,7 +39,7 @@
 #include "FreeRTOS_POSIX/utils.h"
 
 /* Needed to work with current Espressif FreeRTOS port. */
-static portMUX_TYPE spinlock;
+static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 /**
  * @brief Initialize a PTHREAD_MUTEX_INITIALIZER mutex.

@@ -37,7 +37,7 @@
 #include "FreeRTOS_POSIX/semaphore.h"
 #include "FreeRTOS_POSIX/utils.h"
 
-static portMUX_TYPE spinlock;
+static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 
 

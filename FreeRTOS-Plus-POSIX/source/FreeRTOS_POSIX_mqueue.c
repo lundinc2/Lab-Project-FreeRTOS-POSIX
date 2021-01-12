@@ -153,7 +153,7 @@ static StaticSemaphore_t xQueueListMutex = { { 0 }, .u = { 0 } };
 static Link_t xQueueListHead = { 0 };
 
 /* Needed to work with current Espressif FreeRTOS port. */
-static portMUX_TYPE spinlock;
+static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 /*-----------------------------------------------------------*/
 

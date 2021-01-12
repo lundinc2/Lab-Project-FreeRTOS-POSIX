@@ -36,7 +36,7 @@
 #include "FreeRTOS_POSIX/errno.h"
 #include "FreeRTOS_POSIX/pthread.h"
 
-static portMUX_TYPE spinlock;
+static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 /*
  * @brief barrier max count

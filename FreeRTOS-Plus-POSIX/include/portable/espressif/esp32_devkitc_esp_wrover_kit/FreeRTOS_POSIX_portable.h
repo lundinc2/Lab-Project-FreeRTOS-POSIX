@@ -45,10 +45,7 @@
 #define posixconfigENABLE_TIME_T                 0
 #define posixconfigENABLE_TIMESPEC               0
 #define posixconfigENABLE_ITIMERSPEC             0
-
-/* ESP-IDF already provides the header sched.h. Exclude FreeRTOS+POSIX sched.h by
- * defining its double inclusion guard. */
-//#define _FREERTOS_POSIX_SCHED_H_
+#define posixconfigENABLE_SCHED_PARAM             0
 
 /* Use the FreeRTOS+POSIX time.h header instead of the ESP-IDF time.h. Disable
  * ESP-IDF time.h by defining its double inclusion guard. */
