@@ -38,6 +38,9 @@
 #include "FreeRTOS_POSIX/pthread.h"
 #include "FreeRTOS_POSIX/utils.h"
 
+/* Needed to work with current Espressif FreeRTOS port. */
+static portMUX_TYPE spinlock;
+
 /**
  * @brief Initialize a PTHREAD_MUTEX_INITIALIZER mutex.
  *
@@ -66,7 +69,7 @@ static void prvInitializeStaticMutex( pthread_mutex_internal_t * pxMutex )
     {
         /* Mutex initialization must be in a critical section to prevent two threads
          * from initializing it at the same time. */
-        taskENTER_CRITICAL();
+        portENTER_CRITICAL( &spinlock );
 
         /* Check again that the mutex is still uninitialized, i.e. it wasn't
          * initialized while this function was waiting to enter the critical
@@ -88,7 +91,7 @@ static void prvInitializeStaticMutex( pthread_mutex_internal_t * pxMutex )
         }
 
         /* Exit the critical section. */
-        taskEXIT_CRITICAL();
+        portEXIT_CRITICAL( &spinlock );
     }
 }
 

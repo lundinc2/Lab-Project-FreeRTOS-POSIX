@@ -78,4 +78,5 @@
     typedef void                       * PthreadBarrierType_t;
 #endif
 
+
 #endif /* _FREERTOS_POSIX_INTERNAL_TYPES_H_ */
