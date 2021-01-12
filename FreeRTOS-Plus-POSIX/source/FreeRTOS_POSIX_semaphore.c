@@ -37,7 +37,8 @@
 #include "FreeRTOS_POSIX/semaphore.h"
 #include "FreeRTOS_POSIX/utils.h"
 
-#include "atomic.h"
+static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
+
 
 
 /*-----------------------------------------------------------*/
@@ -110,12 +111,16 @@ int sem_post( sem_t * sem )
 {
     sem_internal_t * pxSem = ( sem_internal_t * ) ( sem );
 
-    int iPreviouValue = Atomic_Increment_u32( ( uint32_t * ) &pxSem->value );
+    portENTER_CRITICAL( &spinlock );
+    int iPreviousValue = pxSem->value;
+
+    pxSem->value = pxSem->value - 1;
+    portEXIT_CRITICAL( &spinlock );
 
     /* If previous semaphore value is equal or larger than zero, there is no
      * thread waiting for this semaphore. Otherwise (<0), call FreeRTOS interface
      * to wake up a thread. */
-    if( iPreviouValue < 0 )
+    if( iPreviousValue < 0 )
     {
         /* Give the semaphore using the FreeRTOS API. */
         ( void ) xSemaphoreGive( ( SemaphoreHandle_t ) &pxSem->xSemaphore );
@@ -132,7 +137,12 @@ int sem_timedwait( sem_t * sem,
     int iStatus = 0;
     sem_internal_t * pxSem = ( sem_internal_t * ) ( sem );
     TickType_t xDelay = portMAX_DELAY;
-    int iPreviousValue = Atomic_Decrement_u32( ( uint32_t * ) &pxSem->value );
+
+    portENTER_CRITICAL( &spinlock );
+    int iPreviousValue = pxSem->value;
+
+    pxSem->value = pxSem->value - 1;
+    portEXIT_CRITICAL( &spinlock );
 
     if( abstime != NULL )
     {

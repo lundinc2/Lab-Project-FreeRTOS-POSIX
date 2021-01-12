@@ -37,7 +37,7 @@
 #include "FreeRTOS_POSIX/pthread.h"
 #include "FreeRTOS_POSIX/utils.h"
 
-#include "atomic.h"
+static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 /**
  * @brief Initialize a PTHREAD_COND_INITIALIZER cond.
@@ -59,7 +59,7 @@ static void prvInitializeStaticCond( pthread_cond_internal_t * pxCond )
     {
         /* Cond initialization must be in a critical section to prevent two threads
          * from initializing it at the same time. */
-        taskENTER_CRITICAL();
+        portENTER_CRITICAL( &spinlock );
 
         /* Check again that the cond is still uninitialized, i.e. it wasn't
          * initialized while this function was waiting to enter the critical
@@ -74,7 +74,7 @@ static void prvInitializeStaticCond( pthread_cond_internal_t * pxCond )
         }
 
         /* Exit the critical section. */
-        taskEXIT_CRITICAL();
+        portEXIT_CRITICAL( &spinlock );
     }
 }
 
@@ -85,13 +85,24 @@ static void prvTestAndDecrement( pthread_cond_t * pxCond,
                                  unsigned iLocalWaitingThreads )
 {
     /* Test local copy of threads waiting is larger than zero. */
+    int iStatus = -1;
+
     while( iLocalWaitingThreads > 0 )
     {
         /* Test-and-set. Atomically check whether the copy in memory has changed.
          * And, if not decrease the copy of threads waiting in memory. */
-        if( ATOMIC_COMPARE_AND_SWAP_SUCCESS == Atomic_CompareAndSwap_u32( ( uint32_t * ) &pxCond->iWaitingThreads, ( uint32_t ) iLocalWaitingThreads - 1, ( uint32_t ) iLocalWaitingThreads ) )
+        portENTER_CRITICAL( &spinlock );
+
+        if( pxCond->iWaitingThreads == iLocalWaitingThreads )
         {
-            /* Signal one succeeded. Break. */
+            pxCond->iWaitingThreads = iLocalWaitingThreads - 1;
+            iStatus = 0;
+        }
+
+        portEXIT_CRITICAL( &spinlock );
+
+        if( iStatus == 0 )
+        {
             break;
         }
 
@@ -105,6 +116,7 @@ static void prvTestAndDecrement( pthread_cond_t * pxCond,
 int pthread_cond_broadcast( pthread_cond_t * cond )
 {
     unsigned i = 0;
+    int iStatus = -1;
     pthread_cond_internal_t * pxCond = ( pthread_cond_internal_t * ) ( cond );
 
     /* If the cond is uninitialized, perform initialization. */
@@ -118,7 +130,18 @@ int pthread_cond_broadcast( pthread_cond_t * cond )
     {
         /* Test-and-set. Atomically check whether the copy in memory has changed.
          * And, if not set the copy of threads waiting in memory to zero. */
-        if( ATOMIC_COMPARE_AND_SWAP_SUCCESS == Atomic_CompareAndSwap_u32( ( uint32_t * ) &pxCond->iWaitingThreads, 0, ( uint32_t ) iLocalWaitingThreads ) )
+
+        portENTER_CRITICAL( &spinlock );
+
+        if( pxCond->iWaitingThreads == iLocalWaitingThreads )
+        {
+            pxCond->iWaitingThreads = 0;
+            iStatus = 0;
+        }
+
+        portEXIT_CRITICAL( &spinlock );
+
+        if( iStatus == 0 )
         {
             /* Unblock all. */
             for( i = 0; i < iLocalWaitingThreads; i++ )
@@ -181,6 +204,7 @@ int pthread_cond_init( pthread_cond_t * cond,
 
 int pthread_cond_signal( pthread_cond_t * cond )
 {
+    int iStatus = -1;
     pthread_cond_internal_t * pxCond = ( pthread_cond_internal_t * ) ( cond );
 
     /* If the cond is uninitialized, perform initialization. */
@@ -194,7 +218,17 @@ int pthread_cond_signal( pthread_cond_t * cond )
     {
         /* Test-and-set. Atomically check whether the copy in memory has changed.
          * And, if not decrease the copy of threads waiting in memory. */
-        if( ATOMIC_COMPARE_AND_SWAP_SUCCESS == Atomic_CompareAndSwap_u32( ( uint32_t * ) &pxCond->iWaitingThreads, ( uint32_t ) iLocalWaitingThreads - 1, ( uint32_t ) iLocalWaitingThreads ) )
+        portENTER_CRITICAL( &spinlock );
+
+        if( pxCond->iWaitingThreads == iLocalWaitingThreads )
+        {
+            pxCond->iWaitingThreads = iLocalWaitingThreads - 1;
+            iStatus = 0;
+        }
+
+        portEXIT_CRITICAL( &spinlock );
+
+        if( iStatus == 0 )
         {
             /* Unblock one. */
             ( void ) xSemaphoreGive( ( SemaphoreHandle_t ) &pxCond->xCondWaitSemaphore );
@@ -246,7 +280,9 @@ int pthread_cond_timedwait( pthread_cond_t * cond,
     {
         /* Atomically increments thread waiting by 1, and
          * stores number of threads waiting before increment. */
-        iLocalWaitingThreads = Atomic_Increment_u32( ( uint32_t * ) &pxCond->iWaitingThreads );
+        portENTER_CRITICAL( &spinlock );
+        pxCond->iWaitingThreads++;
+        portEXIT_CRITICAL( &spinlock );
 
         iStatus = pthread_mutex_unlock( mutex );
     }

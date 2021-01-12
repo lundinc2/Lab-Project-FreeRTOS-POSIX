@@ -39,6 +39,7 @@ extern "C" {
 
 /* FreeRTOS+POSIX includes. POSIX states that this header shall make symbols
  * defined in sched.h and time.h visible. */
+#include <sched.h>
 #include "FreeRTOS_POSIX/sched.h"
 #include "FreeRTOS_POSIX/time.h"
 

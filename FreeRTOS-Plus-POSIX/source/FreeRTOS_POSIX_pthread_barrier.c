@@ -36,7 +36,7 @@
 #include "FreeRTOS_POSIX/errno.h"
 #include "FreeRTOS_POSIX/pthread.h"
 
-#include "atomic.h"
+static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 /*
  * @brief barrier max count
@@ -132,7 +132,9 @@ int pthread_barrier_wait( pthread_barrier_t * barrier )
      */
     ( void ) xSemaphoreTake( ( SemaphoreHandle_t ) &pxBarrier->xThreadCountSemaphore, portMAX_DELAY );
 
-    uThreadNumber = Atomic_Increment_u32( ( uint32_t * ) &pxBarrier->uThreadCount );
+    portENTER_CRITICAL( &spinlock );
+    pxBarrier->uThreadCount++;
+    portEXIT_CRITICAL( &spinlock );
 
     /* Set the bit in the event group representing this thread, then wait for the other
      * threads to set their bit. This call should wait forever until all threads have set

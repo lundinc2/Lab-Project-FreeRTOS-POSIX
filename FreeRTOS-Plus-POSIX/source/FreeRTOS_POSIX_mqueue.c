@@ -38,6 +38,9 @@
 #include "FreeRTOS_POSIX/mqueue.h"
 #include "FreeRTOS_POSIX/utils.h"
 
+/* Doubly linked list include. */
+#include "iot_doubly_linked_list.h"
+
 /**
  * @brief Element of the FreeRTOS queues that store mq data.
  */
@@ -148,6 +151,9 @@ static StaticSemaphore_t xQueueListMutex = { { 0 }, .u = { 0 } };
  * @brief Head of the linked list of queues.
  */
 static Link_t xQueueListHead = { 0 };
+
+/* Needed to work with current Espressif FreeRTOS port. */
+static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 /*-----------------------------------------------------------*/
 
@@ -342,7 +348,7 @@ static void prvInitializeQueueList( void )
     {
         /* Initialization must be in a critical section to prevent two threads
          * from initializing at the same time. */
-        taskENTER_CRITICAL();
+        portENTER_CRITICAL( &spinlock );
 
         /* Check again that queue list is still uninitialized, i.e. it wasn't
          * initialized while this function was waiting to enter the critical
@@ -356,7 +362,7 @@ static void prvInitializeQueueList( void )
         }
 
         /* Exit the critical section. */
-        taskEXIT_CRITICAL();
+        portEXIT_CRITICAL( &spinlock );
     }
 }
 

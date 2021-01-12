@@ -32,29 +32,19 @@
 #define _FREERTOS_POSIX_PORTABLE_H_
 
 /* ESP-IDF already defines the following types. */
-#define posixconfigENABLE_CLOCK_T                0
-#define posixconfigENABLE_CLOCKID_T              0
-#define posixconfigENABLE_MODE_T                 0
-#define posixconfigENABLE_PTHREAD_ATTR_T         0
-#define posixconfigENABLE_PTHREAD_COND_T         0
-#define posixconfigENABLE_PTHREAD_CONDATTR_T     0
-#define posixconfigENABLE_PTHREAD_MUTEX_T        0
-#define posixconfigENABLE_PTHREAD_MUTEXATTR_T    0
-#define posixconfigENABLE_PTHREAD_T              0
+#define posixconfigENABLE_TIMER_T                0
 #define posixconfigENABLE_TIME_T                 0
 #define posixconfigENABLE_TIMESPEC               0
 #define posixconfigENABLE_ITIMERSPEC             0
+#define posixconfigENABLE_SCHED_PARAM            0
 
-/* ESP-IDF already provides the header sched.h. Exclude FreeRTOS+POSIX sched.h by
- * defining its double inclusion guard. */
-#define _FREERTOS_POSIX_SCHED_H_
 
-/* Use the FreeRTOS+POSIX time.h header instead of the ESP-IDF time.h. Disable
- * ESP-IDF time.h by defining its double inclusion guard. */
-#define _TIME_H_
-
-/* Disable the timer_t type defined by ESP-IDF. */
-#define __timer_t_defined
-#include <sys/types.h>
+/* Disable the following types to not clash with IDF definitions. */
+#define _SYS__PTHREADTYPES_H_
+#define _MODE_T_DECLARED
+#define	__clockid_t_defined
+#define	_CLOCKID_T_DECLARED
+#define	__clock_t_defined
+#define	_CLOCK_T_DECLARED
 
 #endif /* _FREERTOS_POSIX_PORTABLE_H_ */
